@@ -1,0 +1,10 @@
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+# Verzije mlflow/pandas/scikit-learn/xgboost MORAJU da se poklapaju sa onima u
+# Dockerfile.airflow (proveri: docker exec <airflow-container> pip show <paket>) -
+# pickle-ovan sklearn/xgboost model ucitan preko drugacije verzije moze da pukne
+# ili (gore) tiho da daje pogresne predikcije.
+mlflow==3.2.0
+pandas==2.1.4
+scikit-learn==1.9.0
+xgboost==3.2.0
