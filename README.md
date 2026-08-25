@@ -1,6 +1,6 @@
 # WeatherAus - Airflow
 
-Ovaj projekat je produkciona/orkestraciona nadogradnja projekta [**Predikcija kiše u Australiji**](../merging/README.md), rađenog u okviru predmeta Uvod u nauku o podacima.
+Ovaj projekat je produkciona/orkestraciona nadogradnja projekta [**Predikcija kiše u Australiji**](https://github.com/LukaBujosevic10/RainInAustraliaPredictions), rađenog u okviru predmeta Uvod u nauku o podacima.
 
 ## Opis projekta
 
@@ -99,5 +99,3 @@ Nakon što se kontejneri pokrenu:
 - **MLflow UI:** http://localhost:5000 - pregled eksperimenata, metrika i registrovanih modela.
 - **FastAPI dokumentacija (Swagger UI):** http://localhost:8000/docs - interaktivno testiranje predikcionih ruta.
 - **Streamlit mapa stanica:** http://localhost:8501 - klik na stanicu za predikciju kiše.
-
-Kompletno uputstvo (debagovanje, poznata ograničenja, fiksna admin lozinka...) je u [`AIRFLOW_SETUP.md`](AIRFLOW_SETUP.md).
