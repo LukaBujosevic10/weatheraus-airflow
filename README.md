@@ -53,7 +53,7 @@ Za razliku od jednostavnijih pipeline-ova (predobrada → trening → evaluacija
 
 Svaki task čita CSV checkpoint koji je prethodni upravo napisao - tok podataka je strogo linearan, bez grananja.
 
-**Implementacija:** funkcije koje izvršavaju ove zadatke napisane su u [`utils/tasks.py`](utils/tasks.py), uz zajedničke konstante/pomoćne funkcije u [`utils/common.py`](utils/common.py). Ovo nije pisano od nule - izvučeno je iz svezaka u [`../merging/notebooks/`](../merging/notebooks/) (ista logika, bez izmena), koje ostaju netaknute u tom odvojenom projektu i dalje služe kao glavna dokumentacija analize i obrazloženja odluka. Sami podaci (`InputData/`, `GeoPodaci/`, keširani proračuni) su kopirani u [`data/`](data/README.md) ovog projekta - pipeline je samostalan, ne čita `../merging` u radu. Namerno su izostavljeni koraci koji su čisto dijagnostički i ne pišu ništa što naredna faza koristi (EDA, analiza značaja atributa...) - detaljno obrazloženje u [`AIRFLOW_SETUP.md`](AIRFLOW_SETUP.md).
+**Implementacija:** funkcije koje izvršavaju ove zadatke napisane su u [`utils/tasks.py`](utils/tasks.py), uz zajedničke konstante/pomoćne funkcije u [`utils/common.py`](utils/common.py). Ovo nije pisano od nule - izvučeno je iz svezaka u [`../merging/notebooks/`](../merging/notebooks/) (ista logika, bez izmena), koje ostaju netaknute u tom odvojenom projektu i dalje služe kao glavna dokumentacija analize i obrazloženja odluka. Sami podaci (`InputData/`, `GeoPodaci/`, keširani proračuni) su kopirani u [`data/`](data/README.md) ovog projekta - pipeline je samostalan, ne čita `../merging` u radu. Namerno su izostavljeni koraci koji su čisto dijagnostički i ne pišu ništa što naredna faza koristi (EDA, analiza značaja atributa...).
 
 ### Orkestracija pomoću Airflow DAG-a
 

@@ -1,17 +1,3 @@
-# Airflow image sa dodatim paketima potrebnim da izvrsi task funkcije iz utils/tasks.py
-# (izvucene iz ../merging/notebooks, vidi utils/tasks.py za detalje).
-#
-# NAMERNO ne instaliramo ceo req/requirements.txt (100+ nepinovanih paketa, ukljucujuci
-# Flask koji bi mogao da se sudari sa Airflow-ovom sopstvenom pinovanom verzijom). Umesto
-# toga instaliramo samo ono sto se STVARNO importuje u utils/common.py i utils/tasks.py, uz
-# Airflow-ov zvanicni constraints fajl koji garantuje da se Airflow-ove sopstvene zavisnosti
-# ne pomere.
-#
-# Geoprostorni paketi (geopandas/cartopy/pyproj/shapely/timezonefinder) su namerno
-# IZOSTAVLJENI - originalni kod ih vec hvata kroz try/except i pada nazad na kesirane
-# CSV fajlove (backups/weatherAusAfter9_2_5*.csv, reports/tacka_rose.csv) koji vec postoje.
-# Ako ih ipak zelis, dodaj ih ispod (Cartopy zahteva i sistemske GEOS/PROJ biblioteke).
-
 FROM apache/airflow:2.10.4-python3.11
 
 USER airflow

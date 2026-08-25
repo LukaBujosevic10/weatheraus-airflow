@@ -1,34 +1,3 @@
-"""
-Task funkcije za weatheraus_pipeline DAG - izvucene IZ notebook-ova u
-../merging/notebooks (01, 04, 05a, 05b, 07a, 07b, 08, 09), bez izmene logike
-transformacija/treniranja. Zamenjuju raniji pristup (nbclient izvrsavanje
-.ipynb fajlova) planim Python funkcijama, po uzoru na
-https://github.com/veljako/Airflow-Tutorial (utils/fun.py + @task).
-
-Svaka funkcija odgovara tacno jednoj svesci i cita/pise iste "backups/*.csv"
-checkpoint-e kao i original - DAG (dags/weatheraus_pipeline_dag.py) ih i dalje
-lancano izvrsava istim redosledom (01 -> 04 -> 05a -> 05b -> 07a -> 07b -> 08 -> 09).
-Sveske 02, 03, 06, 10 ostaju namerno izostavljene (isti razlozi kao i ranije -
-vidi AIRFLOW_SETUP.md #3).
-
-Poznate NAMERNE razlike u odnosu na izvorne sveske (obe dokumentovane, obe su
-funkcionalne ispravke - originalne sveske u merging su OSTAVLJENE NETAKNUTE):
-
-1. `detekcija_anomalija` (04): originalna sveska cita
-   "backups/weatherAUSAfter5_2.csv" (veliko "AUS"), a fajl koji 01 stvarno pise
-   je "weatherAusAfter5_2.csv" (malo "us"). Na Windows-u (case-insensitive fs)
-   ovo prolazi, ali bi na Linux kontejneru (case-sensitive) pukao sa
-   FileNotFoundError. Ovde je putanja ispravljena da odgovara stvarnom imenu
-   fajla.
-2. `imputacija_potpuno_nedostajucih` (07a) i `imputacija_nasumicno_nedostajucih`
-   (07b): dijagnosticki zavrsni deo (kreirajAnalizu() - RF feature importance +
-   mutual info, isti kod kao iskljucena sveska 06; kod 07b jos i R^2
-   poredjenje RF-a naspram medijane + histogrami) je izostavljen - ne pise
-   nista sto naredna faza cita (07b/08 citaju "backups/weatherAusAfter11_1_4.csv"
-   odnosno "backups/WeatherAus_After_11_2_3_8.csv" direktno, checkpoint pre ovog
-   dela), isti princip po kom je vec iskljucena sveska 06 iz DAG-a (vidi
-   AIRFLOW_SETUP.md #3).
-"""
 from __future__ import annotations
 
 import csv

@@ -1,19 +1,3 @@
-"""
-FastAPI servis koji servira predikciju kiše za sutra na osnovu svežih (uživo)
-meteoroloških podataka. Nema istorijskog/2017 režima - jedini model koji se koristi
-je 10-atributni model (bez Sused_RainToday_pct/Sused_Pressure3pm_avg - ta dva
-zahtevaju live podatke sa SVIH susednih stanica istovremeno, a doprinose samo
-~2-3% odluke modela svaki, pa je isplativije da produkcioni model bude bez njih).
-
-Podaci se svaki put uzimaju uživo sa Open-Meteo (besplatno, bez API ključa) - videti
-live_features.py za tačan mehanizam (uvek se koristi poslednji POTPUNO završen dan,
-nikad tekući nezavršeni dan, jer bi dnevni agregati poput Rainfall/Sunshine bili
-nepotpuni dok dan traje).
-
-Model registruje notebooks/09_produkcija_modela.ipynb (deo Airflow DAG-a) pod imenom
-WeatherAusRainModel, alias "champion". Da ga osvežiš bez restarta kontejnera posle
-novog pipeline run-a, pozovi POST /reload.
-"""
 import os
 
 import mlflow

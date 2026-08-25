@@ -1,42 +1,3 @@
-# Pojednostavljena verzija: `airflow standalone` (Airflow-ov zvanicni "quick start" nacin)
-# umesto rucnog sastavljanja Postgres + init + webserver + scheduler kao odvojenih servisa.
-# standalone koristi SQLite i SequentialExecutor (jedan task odjednom) - potpuno dovoljno
-# jer je nas DAG strogo linearan (nikad dva task-a paralelno). Samo dva servisa ukupno:
-# `airflow` i trajan `mlflow` server (zamenjuje rucni `docker run` iz sveske 00).
-#
-# Pokretanje (prvi put):
-#   docker compose up -d
-# (bez posebnog init koraka - standalone sam inicijalizuje bazu i admin korisnika)
-# UI: http://localhost:8081  (korisnicko ime: admin, lozinka: admin - ili
-# AIRFLOW_ADMIN_PASSWORD ako je postavljena, npr. u .env fajlu)
-# MLflow UI: http://localhost:5000
-#
-# Napomena 1: host port za Airflow je namerno 8081, ne 8080 - na 8080 na ovoj masini
-# vec radi IIS (Microsoft Dynamics 365 Business Central Web Client), pa bi 8080:8080
-# mapiranje zavrsavalo na IIS-u umesto na Airflow kontejneru. Unutar kontejnera Airflow
-# i dalje slusa na 8080 (ne menja se), menja se samo host strana mapiranja.
-#
-# Napomena 2: Airflow-ova i MLflow-ova SQLite baza NAMERNO ne zive na bind-mount-ovanom
-# folderu, nego na pravom Docker named volume-u (airflow-data). Docker Desktop-ov
-# bind-mount most (Windows fajl-sistem <-> Linux kontejner) ne podrzava pouzdano
-# file-locking koji SQLite trazi kod dugih/ucestalih upisa (Airflow upisuje heartbeat
-# na par sekundi dok task radi) - bez ovoga, dugacki task-ovi pucaju sa
-# "sqlite3.OperationalError: disk I/O error". `dags/`, `utils/` i mount ka `data/`
-# ostaju na bind-mount-u (obicni fajlovi, ne baza) da se mogu menjati iz Windows-a
-# bez rebuild-a.
-#
-# Napomena 3: ovaj projekat je samostalan - NE zavisi od sestrinskog foldera
-# ../merging (ranija verzija je zavisila, montirajuci ga direktno). Svi ulazni
-# podaci (InputData/, GeoPodaci/, kesirani backups/reports fajlovi) su u ./data
-# (vidi data/README.md). ../merging i dalje postoji kao odvojen projekat sa
-# originalnom analizom/sveskama, ali ovaj Airflow deo ga vise ne cita.
-#
-# Napomena 4: Compose project name je namerno fiksiran na "merging" (ispod), ne
-# izveden iz imena ovog foldera - airflow-data volume (MLflow eksperimenti, Airflow
-# DAG run istorija) je vec kreiran pod tim imenom pre nego sto je Airflow deo
-# izdvojen u ovaj folder. Bez ovoga bi `docker compose up` napravio NOV, prazan
-# volume ("weatheraus-airflow_airflow-data") i sva dosadasnja istorija bi ostala
-# nedostupna (ne obrisana, samo nedostupna dok se ne referencira staro ime).
 name: merging
 
 x-airflow-common: &airflow-common
@@ -48,8 +9,6 @@ x-airflow-common: &airflow-common
     AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
     AIRFLOW__CORE__DEFAULT_TIMEZONE: utc
-    # Sveska 08 cita ovu promenljivu (fallback na 127.0.0.1:5000 ako nije postavljena) -
-    # unutar compose mreze mlflow servis se zove po imenu servisa, ne localhost.
     MLFLOW_TRACKING_URI: http://mlflow:5000
   volumes:
     - ./dags:/opt/airflow/dags
@@ -58,24 +17,11 @@ x-airflow-common: &airflow-common
     - airflow-data:/opt/airflow/data
 
 services:
-  # Jednokratno: nov named volume je u vlasnistvu root-a, a airflow/mlflow servisi
-  # rade kao obican korisnik `airflow` (bezbednosno, ne kao root) - bez ovog koraka
-  # dobijaju "PermissionError" pri prvom pisanju u /opt/airflow/data.
   init-permissions:
     <<: *airflow-common
     user: "0:0"
     entrypoint: ["bash", "-c"]
     command: ["mkdir -p /opt/airflow/data/airflow_home && chown -R airflow:root /opt/airflow/data"]
-
-  # Pokrece se pri SVAKOM "up" (ne samo jednom): postavlja admin lozinku na FIKSNU
-  # vrednost pre nego sto `standalone` (u servisu `airflow` ispod) i sam pokusa da
-  # napravi admina. `standalone` generise nasumicnu lozinku SAMO ako jos ne postoji
-  # nijedan korisnik - zato ovo mora da zavrsi (service_completed_successfully) pre
-  # njega. Namerno RESETUJE lozinku i kad korisnik vec postoji (ne samo create) -
-  # inace bi ostala zaglavljena stara nasumicna lozinka iz nekog ranijeg pokretanja
-  # na istom named volume-u, bas kao ovde. Lozinka je "admin" ako se ne postavi
-  # AIRFLOW_ADMIN_PASSWORD (npr. u .env fajlu) - ok za lokalni dev (port je samo na
-  # localhost), ne za javno izlozen deployment.
   airflow-init-user:
     <<: *airflow-common
     depends_on:
@@ -94,9 +40,6 @@ services:
     depends_on:
       init-permissions:
         condition: service_completed_successfully
-    # Airflow-ov ugradjeni /entrypoint skript tumaci prosledjenu komandu kao
-    # "airflow <subcommand>" (otud "invalid choice: 'mlflow'" i restart-loop) -
-    # zaobilazimo ga i ostavljamo samo dumb-init kao PID 1.
     entrypoint: ["/usr/bin/dumb-init", "--"]
     command: >
       mlflow server --host 0.0.0.0 --port 5000
@@ -115,11 +58,6 @@ services:
     ports:
       - "8081:8080"
     restart: unless-stopped
-
-  # FastAPI servis koji servira predikcije iz "champion" modela u MLflow Model
-  # Registry-ju (registruje ga notebooks/09_produkcija_modela.ipynb, deo DAG-a).
-  # Posle svakog novog pipeline run-a osvezi ga bez restarta kontejnera:
-  #   curl -X POST http://localhost:8000/reload
   api:
     build:
       context: ./app/api
@@ -129,18 +67,11 @@ services:
       MLFLOW_TRACKING_URI: http://mlflow:5000
     volumes:
       - ./data/GeoPodaci:/data/GeoPodaci:ro
-      # mlflow server cuva artefakte (registrovan model) na lokalnom fajl-sistemu
-      # unutar ovog volume-a - klijent (mlflow.sklearn.load_model) ih cita direktno
-      # sa diska po istoj putanji (ne preko HTTP-a), pa mora da se poklapa. Mora biti
-      # rw (ne :ro) - mlflow pri ucitavanju modela iz local artifact store-a upisuje
-      # i "registered_model_meta" fajl pored artefakta.
+
       - airflow-data:/opt/airflow/data
     ports:
       - "8000:8000"
     restart: unless-stopped
-
-  # Streamlit UI - mapa stanica, klik poziva `api` servis. Ne mora Airflow-ov
-  # bazni image (samo streamlit/folium/requests), zato ima sopstveni Dockerfile.
   ui:
     build:
       context: ./app/ui

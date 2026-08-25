@@ -1,15 +1,3 @@
-"""
-Zivo dohvatanje meteoroloskih podataka sa Open-Meteo (besplatno, bez API kljuca:
-https://open-meteo.com) i preracunavanje istog feature-seta koji ocekuje "live"
-model (10 od originalnih 12 atributa - bez Sused_RainToday_pct/Sused_Pressure3pm_avg,
-koji bi zahtevali live podatke sa SVIH susednih stanica istovremeno, ne samo jedne).
-
-Vazna napomena o datumu: dnevni agregati (Rainfall/Sunshine/...) za DANASNJI dan su
-nepotpuni dok dan traje (kisa/sunce se jos akumuliraju). Zato se kao osnova UVEK
-koristi poslednji POTPUNO zavrsen dan (juce), isto onako kako trening podaci uvek
-predstavljaju zavrsen dan. Vracen "date" u odgovoru je taj dan, a predikcija je za
-dan POSLE njega (u praksi: danas/sutra, zavisno od doba dana kad se poziva API).
-"""
 import requests
 
 ATRIBUTI_LIVE = [
@@ -49,8 +37,6 @@ def izracunaj_live_atribute(lat: float, lon: float) -> tuple[dict, str, list[str
     hourly = podaci["hourly"]
     datumi = daily["time"]
 
-    # datumi[-1] je "sutra" (forecast_days=1), datumi[-2] je danas (nepotpun dok traje) -
-    # bazni dan je poslednji ZAVRSEN dan, datumi[-3].
     bazni_datum = datumi[-3]
     juce_datum = datumi[-4]
     pre_3_dana = [datumi[-5], datumi[-4], datumi[-3]]

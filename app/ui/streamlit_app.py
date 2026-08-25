@@ -1,8 +1,3 @@
-"""
-Streamlit UI - mapa australijskih meteoroloskih stanica; klik na stanicu poziva
-FastAPI servis (app/api), koji uzivo (Open-Meteo) povuce poslednji zavrseni dan za
-tu stanicu i predvidi da li sutra pada kisa.
-"""
 import os
 
 import folium

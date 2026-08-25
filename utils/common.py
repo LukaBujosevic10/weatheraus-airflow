@@ -1,21 +1,3 @@
-"""
-Zajednicke funkcije/konstante/import-i za tasks.py - adaptirana kopija
-../merging/notebooks/common.py (bez izmene logike), sa jednom razlikom: koren
-projekta (gde se citaju/pisu InputData/, backups/, logs/, reports/...) se ovde
-NE racuna iz polozaja ovog fajla, nego iz env promenljive WEATHERAUS_DATA_DIR -
-podrazumevano "/opt/airflow/weatherdata", mount ka ./data u ovom projektu
-(docker-compose.yaml: "./data:/opt/airflow/weatherdata"). Ovaj projekat je
-samostalan - VISE NE zavisi od sestrinskog foldera ../merging; ./data sadrzi
-sve ulazne podatke (InputData/, GeoPodaci/, keirane reports/backups/ fajlove)
-potrebne da pipeline radi od nule (vidi data/README.md).
-
-Zasto kopija a ne deljenje jednog fajla sa merging/notebooks/common.py: taj
-fajl i dalje mora da postoji nepromenjen za rucno pokretanje svezaka u merging
-projektu (koji ostaje odvojen, sa sopstvenom analizom/sveskama) - ova kopija je
-za produkcioni pipeline ovde. Ako ovde ispravis bag, isti popravi i u
-merging/notebooks/common.py ako je relevantan i tamo.
-"""
-
 import os
 
 _PROJECT_ROOT = os.environ.get("WEATHERAUS_DATA_DIR", "/opt/airflow/weatherdata")

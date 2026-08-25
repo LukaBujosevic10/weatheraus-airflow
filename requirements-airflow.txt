@@ -1,8 +1,3 @@
-# Minimalna lista - tacno ono sto utils/common.py i utils/tasks.py importuju.
-# Namerno ne koristimo ceo req/requirements.txt (100+ nepinovanih paketa, ukljucujuci
-# Flask, koji bi se mogao sudariti sa Airflow-ovom sopstvenom pinovanom verzijom).
-# nbformat/nbclient/ipykernel NISU vise potrebni - DAG vise ne izvrsava .ipynb fajlove
-# preko nbclient-a, nego plain Python task funkcije (utils/tasks.py).
 pandas
 numpy
 matplotlib
@@ -14,13 +9,9 @@ statsmodels
 openpyxl
 networkx
 pytz
-requests  # produkcija_modela (09) uvozi ga bezuslovno (van try/except) za API reload poziv
-
-# Opciono - potrebno samo ako zelis da se sekcija 9.2.5 (rastojanje od okeana) i
-# 9.2.7 (tacka rose) STVARNO racunaju umesto da citaju kesirane CSV-ove koji vec
-# postoje u backups/ i reports/. Odkomentarisi ako ti to treba:
-# geopandas
-# cartopy
-# pyproj
-# shapely
-# timezonefinder
+requests  
+geopandas
+cartopy
+pyproj
+shapely
+timezonefinder
