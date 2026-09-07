@@ -105,13 +105,13 @@ def ucitavanje_i_sistemske_greske():
 
     errors: dict = {}
 
-    # R1
+        # R1: MinTemp > MaxTemp
     mask = data["MinTemp"] > data["MaxTemp"]
     data.loc[mask, ["MinTemp", "MaxTemp"]] = np.nan
     for idx in data.index[mask]:
         errors.setdefault(idx, []).append("MinTemp > MaxTemp")
 
-    # R2
+    # R2: Temp9am i Temp3pm van intervala (MinTemp, MaxTemp)
     tol = 0.6
     for t in ("Temp9am", "Temp3pm"):
         mask = (data[t] < data["MinTemp"] - tol) | (data[t] > data["MaxTemp"] + tol)
@@ -119,64 +119,71 @@ def ucitavanje_i_sistemske_greske():
         for idx in data.index[mask]:
             errors.setdefault(idx, []).append(f"{t} van opsega MinTemp-MaxTemp")
 
-    # R3 - usklađivanje RainToday sa Rainfall
-    expected = np.where(data["Rainfall"] >= 1.0, "Yes", "No")
-    mask = data["RainToday"] != expected
+    # R3: usklađivanje RainToday sa Rainfall
+    expected = pd.Series(np.where(data["Rainfall"] >= 1.0, "Yes", "No"), index=data.index)
+    mask = data["Rainfall"].notna() & data["RainToday"].notna() & (data["RainToday"] != expected)
     data.loc[mask, "RainToday"] = np.nan
     for idx in data.index[mask]:
         errors.setdefault(idx, []).append("RainToday inconsistent sa Rainfall")
 
-    # R4
+    # R4: RainTomorrow se ne poklapa sa RainToday sledeceg dana
     nxt_today = data.groupby("Location")["RainToday"].shift(-1)
     nxt_date = data.groupby("Location")["Date"].shift(-1)
     contiguous = (nxt_date - data["Date"]).dt.days.eq(1)
-    mask = contiguous & (data["RainTomorrow"] != nxt_today)
+    mask = contiguous & data["RainTomorrow"].notna() & nxt_today.notna() & (data["RainTomorrow"] != nxt_today)
     data.loc[mask, "RainTomorrow"] = np.nan
     for idx in data.index[mask]:
         errors.setdefault(idx, []).append("RainTomorrow inconsistent sa RainToday sledeceg dana")
 
-    # R5 - duplikati
+    # R5: Duplikati
+    data["_non_null_count"] = data.notna().sum(axis=1)
+    data = data.sort_values(by=["Location", "Date", "_non_null_count"], ascending=[True, True, False])
     mask = data.duplicated(subset=["Location", "Date"], keep="first")
-    data.loc[mask, :] = np.nan
     for idx in data.index[mask]:
-        errors.setdefault(idx, []).append("Dupli zapis")
+        errors.setdefault(idx, []).append("Dupli zapis (obrisan slabiji zapis)")
+    data = data[~mask]
+    data = data.drop(columns=["_non_null_count"])
 
-    # R6 - opsezi
+    # R6: Opsezi definisani u OGRANICENJA_VREDNOSTI
     for v, (low, high) in OGRANICENJA_VREDNOSTI.items():
         mask = (data[v] < low) | (data[v] > high)
         data.loc[mask, v] = np.nan
         for idx in data.index[mask]:
             errors.setdefault(idx, []).append(f"{v} van opsega [{low}, {high}]")
 
-    # R7
+    # R7: WindGustSpeed manja od trenutnih brzina vetra
     mx = data[["WindSpeed9am", "WindSpeed3pm"]].max(axis=1)
     mask = (data["WindGustSpeed"] < mx).fillna(False)
     data.loc[mask, "WindGustSpeed"] = np.nan
     for idx in data.index[mask]:
         errors.setdefault(idx, []).append("WindGustSpeed < max(WindSpeed9am, WindSpeed3pm)")
 
-    # R8
+    # R8: Tačka rose veća od trenutne temperature
     for t, h in (("Temp9am", "Humidity9am"), ("Temp3pm", "Humidity3pm")):
-        td = _dew_point(data[t], data[h])
-        mask = (td > data[t]).fillna(False)
+        td = dew_point(data[t], data[h])
+        mask = (td > data[t] + 0.1).fillna(False)
         data.loc[mask, t] = np.nan
         for idx in data.index[mask]:
             errors.setdefault(idx, []).append(f"Dew point > {t}")
 
-    # R9
+    # R9: Skok pritiska > 12 hPa u roku od 6 sati (2 hPa na sat)
     mask = ((data["Pressure3pm"] - data["Pressure9am"]).abs() > 12.0).fillna(False)
     data.loc[mask, ["Pressure9am", "Pressure3pm"]] = np.nan
     for idx in data.index[mask]:
-        errors.setdefault(idx, []).append("Nedozvoljeni skok pritiska")
+        errors.setdefault(idx, []).append("Nedozvoljeni skok pritiska (veci od 12hPa za 6h)")
 
-    # R10
+    # R10: Nedostajući dani u vremenskoj seriji
     gap = data.groupby("Location")["Date"].diff().dt.days
     mask = gap > 1
     for idx in data.index[mask]:
-        errors.setdefault(idx, []).append("Nedostaje dan u seriji")
+        errors.setdefault(idx, []).append(f"Nedostaje dan u seriji (gap: {int(gap[idx])} dana)")
+
+    error_df = pd.DataFrame([
+        {"Index": idx, "Errors": "; ".join(msgs)}
+        for idx, msgs in errors.items()
+    ])
 
     write_log(data, "Uklonjene fizicke anomalije", "weatherAusAfter5_2.csv")
-
 
 # ---------------------------------------------------------------------------
 # 04_detekcija_anomalija
